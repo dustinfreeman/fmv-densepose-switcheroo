@@ -39,15 +39,15 @@ def standard_run():
 
 def video_downsample(args, skip=False):
     # http://trac.ffmpeg.org/wiki/Scaling
-    input_video_no_ext, ext = os.path.splitext(args.input_video)
+    input_video_no_ext, ext = os.path.splitext(args.preprocess)
     
-    scale_factor = 2
+    scale_factor = 4
     output_filename = input_video_no_ext + '-scaledown' + str(scale_factor) + ext
 
     if not skip:
         # proc = subprocess.Popen(['ls', '-la'])
         # test = ' '.join(
-        subprocess.call(['ffmpeg', '-i', args.input_video, 
+        subprocess.call(['ffmpeg', '-i', args.preprocess, 
                         '-vf', f'scale=iw/{scale_factor}:ih/{scale_factor}', 
                         input_video_no_ext + '-scaledown' + str(scale_factor) + ext ])
         # print(test)
@@ -55,7 +55,7 @@ def video_downsample(args, skip=False):
     return output_filename
 
 def _processing_base_path(args):
-    return os.path.splitext(args.input_video)[0] + '/'
+    return os.path.splitext(args.preprocess)[0] + '/'
 
 def _img_split_path(args):
     img_split_path = _processing_base_path(args) + 'frames'
@@ -148,14 +148,21 @@ def create_static_texture(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_video", type=str,
+    parser.add_argument("-preprocess", type=str,
         help="video for preprocessing")
+    parser.add_argument("-source", type=str,
+        help="take texture from this video")
+    parser.add_argument("-dest", type=str,
+        help="apply texture to this video")
     args = parser.parse_args()
     
-    preprocess_video(args, skip=True)
-    apply_densepose_iuv(args)
-    create_iuv_images(args)
-    create_static_texture(args)
+    if args.preprocess:
+        preprocess_video(args, skip=False)
+        apply_densepose_iuv(args)
+        create_iuv_images(args)
+        create_static_texture(args)
+    if args.source and args.dest:
+        print('pass?')
 
 if __name__ == "__main__":
     main()
