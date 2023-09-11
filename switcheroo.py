@@ -1,3 +1,7 @@
+import argparse
+import subprocess
+import os
+
 import sys
 sys.path.append('../')
 sys.path.insert(0, '../DensePoseFnL')
@@ -23,8 +27,27 @@ def standard_run():
     #     "output":"/mnt/c/Users/dustinfreeman/Downloads/wsl-output.jpg"
     # })
 
+def preprocess_video(args):
+    # http://trac.ffmpeg.org/wiki/Scaling
+    print(f'pre-processing: {args.input_video}')
+    input_video_no_ext, ext = os.path.splitext(args.input_video)
+    scale_factor = 2
+
+    # proc = subprocess.Popen(['ls', '-la'])
+    # test = ' '.join(
+    subprocess.call(['ffmpeg', '-i', args.input_video, 
+                     '-vf', f'scale=iw/{scale_factor}:ih/{scale_factor}', 
+                     input_video_no_ext + '-scaledown' + str(scale_factor) + ext ])
+    # print(test)
+    # print(proc.args)
+
+
 def main():
-    standard_run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_video", type=str,
+        help="video for preprocessing")
+    args = parser.parse_args()
+    preprocess_video(args)
 
 if __name__ == "__main__":
     main()
