@@ -4,12 +4,15 @@ import os
 import sys
 from PIL import Image
 import pickle
+from pathlib import Path
 
 import numpy as np
 
 sys.path.append('../')
 sys.path.insert(0, '../DensePoseFnL')
 import apply_net
+sys.path.insert(0, '../UVTextureConverter')
+from UVTextureConverter import UVConverter
 
 import utils
 
@@ -122,6 +125,20 @@ def create_iuv_images(args):
 
         bg_img.save(_iuv_images_path(args) + file_shortname_noext + '_iuv.png') 
 
+def _static_texture_path(args):
+    return _processing_base_path(args) + "static_texture.png"
+
+def create_static_texture(args):
+    im_list = list(Path(_img_split_path(args)).iterdir())
+    im_list = [str(im) for im in im_list] 
+
+    iuv_list = list(Path(_iuv_images_path(args)).iterdir())
+    iuv_list = [str(im) for im in iuv_list] 
+
+    tex_im, mask_im = UVConverter.create_texture_from_video(im_list, iuv_list, parts_size=16)
+    static_text_im = Image.fromarray(np.uint8(tex_im * 255),"RGB")
+    static_text_im.save(_static_texture_path(args))
+
 # movie.mov
 # movie_scaledown2.mov
 # movie/
@@ -135,10 +152,10 @@ def main():
         help="video for preprocessing")
     args = parser.parse_args()
     
-    # preprocess_video(args, skip=True)
-    # apply_densepose_iuv(args)
+    preprocess_video(args, skip=True)
+    apply_densepose_iuv(args)
     create_iuv_images(args)
-
+    create_static_texture(args)
 
 if __name__ == "__main__":
     main()
