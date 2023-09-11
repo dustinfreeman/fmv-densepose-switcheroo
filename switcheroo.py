@@ -49,6 +49,7 @@ def video_downsample(args, skip=False):
         # test = ' '.join(
         subprocess.call(['ffmpeg', '-i', args.preprocess, 
                         '-vf', f'scale=iw/{scale_factor}:ih/{scale_factor}', 
+                        '-filter:v', 'fps=10',
                         input_video_no_ext + '-scaledown' + str(scale_factor) + ext ])
         # print(test)
         # print(proc.args)
