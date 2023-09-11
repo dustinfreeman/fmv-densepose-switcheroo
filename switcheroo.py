@@ -63,7 +63,7 @@ def _img_split_path(args):
 
 def preprocess_video(args, skip=False):
     # cheap DAG
-    _video = video_downsample(args, skip=True)
+    _video = video_downsample(args, skip=False)
     if not skip:
         utils.vid2imgs(_video, _img_split_path(args))
 
@@ -123,7 +123,7 @@ def create_iuv_images(args):
         bg[y:y+h,x:x+w,:]=iuv
         bg_img = Image.fromarray(np.uint8(bg),"RGB")
 
-        bg_img.save(_iuv_images_path(args) + file_shortname_noext + '_iuv.png') 
+        bg_img.save(_iuv_images_path(args) + file_shortname_noext + '.png') 
 
 def _static_texture_path(args):
     return _processing_base_path(args) + "static_texture.png"
