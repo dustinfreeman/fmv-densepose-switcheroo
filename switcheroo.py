@@ -128,6 +128,7 @@ def create_iuv_images(args):
 def _static_texture_path(args):
     return _processing_base_path(args) + "static_texture.png"
 
+parts_size = 16
 def create_static_texture(args):
     im_list = list(Path(_img_split_path(args)).iterdir())
     im_list = [str(im) for im in im_list] 
@@ -135,7 +136,7 @@ def create_static_texture(args):
     iuv_list = list(Path(_iuv_images_path(args)).iterdir())
     iuv_list = [str(im) for im in iuv_list] 
 
-    tex_im, mask_im = UVConverter.create_texture_from_video(im_list, iuv_list, parts_size=16)
+    tex_im, mask_im = UVConverter.create_texture_from_video(im_list, iuv_list, parts_size=parts_size)
     static_text_im = Image.fromarray(np.uint8(tex_im * 255),"RGB")
     static_text_im.save(_static_texture_path(args))
 
@@ -145,6 +146,67 @@ def create_static_texture(args):
 # movie/frames/...*.jpg
 # movie/iuv_results.pkl
 # movie/iuv/...*.png
+# movieA-to-movieB/frames/*.jpg
+# movieA-to-movieB.mov
+
+def _transfer_result_path(args):
+    return os.path.splitext(args.source)[0] + '-to-' + \
+        os.path.splitext(args.dest)[0].replace('../', '') +'/'
+
+def transfer_texture(args):
+    # transfer texture from source static texture to dest images
+    static_texture = os.path.splitext(args.source)[0] + '/' +  'static_texture.png'
+    dest_iuv_list = list(Path(os.path.splitext(args.dest)[0] + '/iuv').iterdir())
+    dest_iuv_list = [str(im) for im in dest_iuv_list] 
+
+    utils.prepare_output_folder(_transfer_result_path(args) + 'frames/')
+
+    i_id, u_id, v_id = 2, 1, 0
+    parts_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+    
+    static_texture = Image.open(static_texture)
+    static_texture = (np.array(static_texture)).transpose(0, 1, 2)
+
+    for iuv_file in dest_iuv_list:
+        dest_iuv = Image.open(iuv_file)
+        iuv = (np.array(dest_iuv)).transpose(2, 1, 0)
+
+        image_out = np.zeros((3, iuv.shape[1], iuv.shape[2]))
+        for x in range(image_out.shape[1]):
+            for y in range(image_out.shape[2]):
+                # determine part_id 
+                part_id = iuv[i_id][x][y]
+                if part_id == 0:
+                    # no body, ignore
+                    continue
+                if part_id > parts_list[-1]:
+                    # print(f'!! out of bounds part_id {part_id} {(x, y)}')
+                    continue
+                # sample from correct part sub_image in iuv
+                u = iuv[u_id][x][y]
+                v = iuv[v_id][x][y]
+                atlas_subimage = ( (part_id - 1) % 6, (part_id - 1) // 6)
+                uv_coords = (u / 255, v / 255)
+
+                tex_coords = (
+                    atlas_subimage[0] * parts_size + 
+                        int((u * (parts_size - 1)) / 255),
+                    atlas_subimage[1] * parts_size + 
+                        int((v * (parts_size - 1)) / 255)
+                )
+
+                for c in [0, 1, 2]:
+                    # print(c, x, y, tex_coords)
+                    image_out[c, x, y] = static_texture\
+                                            [tex_coords[1]][tex_coords[0]][c]
+        
+        _im_out = Image.fromarray(np.uint8(image_out.transpose(2, 1, 0)), "RGB")
+
+        iuv_file_shortname = iuv_file.split('/')[-1]
+        # iuv_file_shortname_noext = os.path.splitext(iuv_file_shortname)[0]
+        _im_out.save(_transfer_result_path(args) + 'frames/' + iuv_file_shortname)
+
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -162,7 +224,8 @@ def main():
         create_iuv_images(args)
         create_static_texture(args)
     if args.source and args.dest:
-        print('pass?')
+        transfer_texture(args)
+        utils.imgs2vid(_transfer_result_path(args) + 'frames/', _transfer_result_path(args) + 'result.mp4')
 
 if __name__ == "__main__":
     main()
